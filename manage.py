@@ -4,7 +4,7 @@ from flask.ext.migrate import Migrate,MigrateCommand
 from app import create_app, db
 
 from app.models import ArticleType, Source, \
-    Article, Menu, ArticleTypeSetting, BlogInfo,BlogView
+    Comment,Article, Menu, ArticleTypeSetting, BlogInfo,BlogView
 
 app = create_app()
 manager = Manager(app)
@@ -58,11 +58,11 @@ def deploy(deploy_type):
         # step_3:generate random articles
         Article.generate_fake(100)
         # step_4:generate random comments
- #       Comment.generate_fake(300)
+        Comment.generate_fake(300)
         # step_5:generate random replies
-  #      Comment.generate_fake_replies(100)
+        Comment.generate_fake_replies(100)
         # step_4:generate random comments
-   #     Comment.generate_fake(300)
+        Comment.generate_fake(300)
 
 if __name__ == '__main__':
     manager.run()

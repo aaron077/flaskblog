@@ -165,7 +165,7 @@ class Article(db.Model):
     num_of_view = db.Column(db.Integer, default=0)
     articleType_id = db.Column(db.Integer, db.ForeignKey('articleTypes.id'))
     source_id = db.Column(db.Integer, db.ForeignKey('sources.id'))
-  #  comments = db.relationship('Comment', backref='article', lazy='dynamic')
+    comments = db.relationship('Comment', backref='article', lazy='dynamic')
 
     @staticmethod
     def generate_fake(count=100):
@@ -199,7 +199,104 @@ class Article(db.Model):
     def __repr__(self):
         return '<Article %r>' % self.title
 
+class Follow(db.Model):
+    __tablename__ = 'follows'
+    follower_id = db.Column(db.Integer, db.ForeignKey('comments.id'),
+                           primary_key=True)
+    followed_id = db.Column(db.Integer, db.ForeignKey('comments.id'),
+                         primary_key=True)
+    
+class Comment(db.Model):
+    __tablename__ = 'comments'
+    id = db.Column(db.Integer, primary_key=True)
+    content = db.Column(db.Text)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    author_name = db.Column(db.String(64))
+    author_email = db.Column(db.String(64))
+    avatar_hash = db.Column(db.String(32))
+    article_id = db.Column(db.Integer, db.ForeignKey('articles.id'))
+    disabled = db.Column(db.Boolean, default=False)
+    comment_type = db.Column(db.String(64), default='comment')
+    reply_to = db.Column(db.String(128), default='notReply')
 
+    followed = db.relationship('Follow',
+                               foreign_keys=[Follow.follower_id],
+                               backref=db.backref('follower', lazy='joined'),
+                               lazy='dynamic',
+                               cascade='all, delete-orphan')
+    followers = db.relationship('Follow',
+                               foreign_keys=[Follow.followed_id],
+                               backref=db.backref('followed', lazy='joined'),
+                               lazy='dynamic',
+                               cascade='all, delete-orphan')
+
+    def __init__(self, **kwargs):
+        super(Comment, self).__init__(**kwargs)
+        if self.author_email is not None and self.avatar_hash is None:
+            self.avatar_hash = hashlib.md5(
+                    self.author_email.encode('utf-8')).hexdigest()
+
+    def gravatar(self, size=40, default='identicon', rating='g'):
+        # if request.is_secure:
+        #     url = 'https://secure.gravatar.com/avatar'
+        # else:
+        #     url = 'http://www.gravatar.com/avatar'
+        url = 'http://gravatar.duoshuo.com/avatar'
+        hash = self.avatar_hash or hashlib.md5(
+            self.author_email.encode('utf-8')).hexdigest()
+        return '{url}/{hash}?s={size}&d={default}&r={rating}'.format(
+            url=url, hash=hash, size=size, default=default, rating=rating)
+
+    @staticmethod
+    def generate_fake(count=100):
+        from random import seed, randint
+        import forgery_py
+
+        seed()
+        article_count = Article.query.count()
+        for i in range(count):
+            a = Article.query.offset(randint(0, article_count - 1)).first()
+            c = Comment(content=forgery_py.lorem_ipsum.sentences(randint(3, 5)),
+                        timestamp=forgery_py.date.date(True),
+                        author_name=forgery_py.internet.user_name(True),
+                        author_email=forgery_py.internet.email_address(),
+                        article=a)
+            db.session.add(c)
+        try:
+            db.session.commit()
+        except:
+            db.session.rollback()
+
+    @staticmethod
+    def generate_fake_replies(count=100):
+        from random import seed, randint
+        import forgery_py
+
+        seed()
+        comment_count = Comment.query.count()
+        for i in range(count):
+            followed = Comment.query.offset(randint(0, comment_count - 1)).first()
+            c = Comment(content=forgery_py.lorem_ipsum.sentences(randint(3, 5)),
+                        timestamp=forgery_py.date.date(True),
+                        author_name=forgery_py.internet.user_name(True),
+                        author_email=forgery_py.internet.email_address(),
+                        article=followed.article, comment_type='reply',
+                        reply_to=followed.author_name)
+            f = Follow(follower=c, followed=followed)
+            db.session.add(f)
+            db.session.commit()
+
+    def is_reply(self):
+        if self.followed.count() == 0:
+            return False
+        else:
+            return True
+    # to confirm whether the comment is a reply or not
+
+    def followed_name(self):
+        if self.is_reply():
+            return self.followed.first().followed.author_name
+            
 class BlogView(db.Model):
     __tablename__ = 'blog_view'
     id = db.Column(db.Integer, primary_key=True)
@@ -217,3 +314,4 @@ class BlogView(db.Model):
         view.num_of_view += 1
         db.session.add(view)
         db.session.commit()
+
