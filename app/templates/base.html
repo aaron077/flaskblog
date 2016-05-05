@@ -26,7 +26,7 @@
     <!-- Collect the nav links, forms, and other content for toggling -->
     <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
       <ul class="nav navbar-nav">
-        <li class="active"><a href="#">首页 <span class="sr-only">(current)</span></a></li>
+        <li class="active"><a href="/">首页 <span class="sr-only">(current)</span></a></li>
         {% for menu in Menu.query.order_by(Menu.order.asc()).all() %}
             {% if menu.types.count() %}
                 <li class="dropdown">
@@ -59,7 +59,31 @@
         </div>
         <button type="submit" class="btn btn-default">Submit</button>
       </form>
+                <ul class="nav navbar-nav navbar-right">
+                    {% if current_user.is_authenticated %}
+                        <li class="dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+                                <img src="{{ current_user.gravatar(size=18) }}">
+                                {{ current_user.username }} <b class="caret"></b>
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a href="#">发表博文</a></li>
+                                <li><a href="#">管理博客</a></li>
+                                <li><a href="#">退出登陆</a></li>
+                            </ul>
+                        </li>
+                    {% endif %}
+                </ul>      
     </div><!-- /.navbar-collapse -->
+    <footer class="footer navbar-fixed-bottom">
+        <div class="container">
+        {% if not current_user.is_authenticated %}
+            -<a href="{{ url_for('auth.login') }}">
+            <span class="glyphicon glyphicon-wrench">后台管理</span>
+        </a>
+        {% endif %}
+        </div>
+    </footer>
   </div><!-- /.container-fluid -->
 </nav>
 {% endblock %}
@@ -76,7 +100,13 @@
     {% block page_content %}{% endblock %}
 </div>
 {% endblock %}
-
+<div class="footer">
+  <p class="footer-content">
+        
+            aaafefeafefeefaefaefefeafefe
+     
+  </p>
+</div>
 {% block scripts %}
 {{ super() }}
 {{ moment.include_moment() }}

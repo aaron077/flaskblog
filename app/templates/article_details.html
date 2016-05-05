@@ -34,12 +34,12 @@
     {% endif %}
     <hr>
     <h4 id="comments"><span class="glyphicon glyphicon-comment">评论</span></h4>
-   
+    {% include "_article_comments.html" %}
     <div class="pagination">
         {{ macros.pagination_widget(pagination, endpoint, id=id, fragment='#comments') }}
     </div>
     <h4  id="submit-comment"><span class="glyphicon glyphicon-comment">发表评论</span></h4>
-    
+    {% include "_submit_comment.html" %}
 </div>
 {% endblock %}
 

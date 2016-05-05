@@ -3,7 +3,7 @@ from flask.ext.script import Manager,Shell
 from flask.ext.migrate import Migrate,MigrateCommand
 from app import create_app, db
 
-from app.models import ArticleType, Source, \
+from app.models import ArticleType, Source,User, \
     Comment,Article, Menu, ArticleTypeSetting, BlogInfo,BlogView
 
 app = create_app()
@@ -29,7 +29,7 @@ def deploy(deploy_type):
     from flask.ext.migrate import upgrade
     from app.models import BlogInfo,Menu
    
-    upgrade()
+    #upgrade()
 
     if deploy_type == 'product':
         db.drop_all()
@@ -37,7 +37,7 @@ def deploy(deploy_type):
         # step_1:insert basic blog info
         BlogInfo.insert_blog_info()
         # step_2:insert admin account
-      #  User.insert_admin(email='blog_mini@163.com', username='blog_mini', password='blog_mini')
+        User.insert_admin(email='blog_mini@163.com', username='blog_mini', password='blog_mini')
         # step_3:insert system default setting
         ArticleTypeSetting.insert_system_setting()
         # step_4:insert default article sources

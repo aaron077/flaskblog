@@ -2,7 +2,8 @@ from flask import render_template, request, current_app, redirect,\
     url_for, flash
 from . import main
 from ..models import Article, ArticleType, \
-    Source,BlogView,Comment
+    Follow,Source,BlogView,Comment
+from .forms import CommentForm
 from .. import db
 
 @main.route('/')
@@ -45,24 +46,45 @@ def article_sources(id):
 @main.route('/article-details/<int:id>',methods=['GET','POST'])
 def articleDetails(id):
     BlogView.add_view(db)
-
+    form = CommentForm(request.form, follow=-1)
     article = Article.query.get_or_404(id)
-    print("111")
+    
+    if form.validate_on_submit():
+        comment = Comment(article=article,
+                          content=form.content.data,
+                          author_name=form.name.data,
+                          author_email=form.email.data)
+        db.session.add(comment)
+        db.session.commit()
+        followed_id = int(form.follow.data)
+        if followed_id != -1:
+            followed = Comment.query.get_or_404(followed_id)
+            f = Follow(follower=comment, followed=followed)
+            comment.comment_type = 'reply'
+            comment.reply_to = followed.author_name
+            db.session.add(f)
+            db.session.add(comment)
+            db.session.commit()
+        flash(u'提交评论成功！', 'success')
+        return redirect(url_for('.articleDetails', id=article.id, page=-1))
+    if form.errors:
+        flash(u'发表评论失败', 'danger')   
+         
     page = request.args.get('page', 1, type=int)
     if page == -1:
         page = (article.comments.count() - 1) // \
             current_app.config['COMMENTS_PER_PAGE'] + 1
-    print("aaa %s",article.comments.count())
+    
     pagination = article.comments.order_by(Comment.timestamp.asc()).paginate(
         page, per_page=current_app.config['COMMENTS_PER_PAGE'],
         error_out=False)
-    print("bbb")
+    
     comments = pagination.items
-    print("ccc")
+    
     article.add_view(article, db)
-    print("ddd")
+    
     return render_template('article_details.html',article=article,
                            comments=comments, pagination=pagination, page=page,
-                           endpoint='.articleDetails', id=article.id)
+                           form=form,endpoint='.articleDetails', id=article.id)
     # page=page, this is used to return the current page args to the
     # disable comment or enable comment endpoint to pass it to the articleDetails endpoint
